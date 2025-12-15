@@ -124,6 +124,30 @@ def test_build_count_distinct_creators_with_threshold() -> None:
     assert _placeholder_count(sql) == len(params)
 
 
+def test_build_count_distinct_publish_days_for_creator_in_month() -> None:
+    intent = Intent(
+        operation=Operation.count_distinct_publish_days,
+        metric=None,
+        date_range=DateRange(
+            scope=DateRangeScope.videos_published_at,
+            start_date=date(2025, 11, 1),
+            end_date=date(2025, 11, 30),
+            inclusive=True,
+        ),
+        filters=Filters(creator_id="c01"),
+    )
+    sql, params = build_query(intent)
+
+    assert "SELECT COUNT(DISTINCT DATE(v.video_created_at))::bigint" in sql
+    assert "FROM videos v" in sql
+    assert "v.creator_id = %s" in sql
+    assert "v.video_created_at >= %s AND v.video_created_at < %s" in sql
+    assert params[0] == "c01"
+    assert params[1].isoformat() == "2025-11-01T00:00:00+00:00"
+    assert params[2].isoformat() == "2025-12-01T00:00:00+00:00"
+    assert _placeholder_count(sql) == len(params)
+
+
 def test_build_snapshot_as_of_threshold_uses_snap_max_cte() -> None:
     intent = Intent(
         operation=Operation.count_videos,

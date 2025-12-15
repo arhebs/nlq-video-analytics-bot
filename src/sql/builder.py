@@ -266,6 +266,7 @@ def build_query(intent: Intent) -> tuple[str, tuple[Any, ...]]:
     builders = {
         Operation.count_videos: _build_count_videos,
         Operation.count_distinct_creators: _build_count_distinct_creators,
+        Operation.count_distinct_publish_days: _build_count_distinct_publish_days,
         Operation.sum_total_metric: _build_sum_total_metric,
         Operation.sum_delta_metric: _build_sum_delta_metric,
         Operation.count_distinct_videos_with_positive_delta: _build_count_distinct_positive_delta,
@@ -298,6 +299,21 @@ def _build_count_distinct_creators(intent: Intent) -> BuiltQuery:
 
     sql = (
         f"{cte_sql}SELECT COUNT(DISTINCT v.creator_id)::bigint {from_sql} "
+        f"{_where_and(clauses)}"
+    ).strip()
+    return BuiltQuery(sql=sql, params=tuple(params))
+
+
+def _build_count_distinct_publish_days(intent: Intent) -> BuiltQuery:
+    if intent.metric is not None:
+        raise SQLBuilderError("count_distinct_publish_days expects metric=null")
+    if intent.date_range is None:
+        raise SQLBuilderError("count_distinct_publish_days requires a date_range")
+
+    from_sql, clauses, params, cte_sql = _video_query_context(intent)
+
+    sql = (
+        f"{cte_sql}SELECT COUNT(DISTINCT DATE(v.video_created_at))::bigint {from_sql} "
         f"{_where_and(clauses)}"
     ).strip()
     return BuiltQuery(sql=sql, params=tuple(params))

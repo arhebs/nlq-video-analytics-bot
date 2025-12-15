@@ -128,6 +128,21 @@ def test_parse_count_distinct_creators_with_threshold() -> None:
     _assert_final_views_gt_100k_threshold(intent)
 
 
+def test_parse_count_distinct_publish_days_in_month_for_creator() -> None:
+    intent = parse_intent(
+        "Для креатора с id aca1061a9d324ecf8c3fa2bb32d7be63 посчитай, "
+        "в скольких разных календарных днях ноября 2025 года "
+        "он публиковал хотя бы одно видео."
+    )
+    assert intent.operation == Operation.count_distinct_publish_days
+    assert intent.metric is None
+    assert intent.filters.creator_id == "aca1061a9d324ecf8c3fa2bb32d7be63"
+    assert intent.date_range is not None
+    assert intent.date_range.scope == DateRangeScope.videos_published_at
+    assert intent.date_range.start_date.isoformat() == "2025-11-01"
+    assert intent.date_range.end_date.isoformat() == "2025-11-30"
+
+
 def test_reactions_is_unsupported() -> None:
     with pytest.raises(RulesParserError):
         parse_intent("Сколько реакций было 28 ноября 2025?")

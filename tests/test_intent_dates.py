@@ -31,3 +31,9 @@ def test_parse_month_range_ru() -> None:
     start, end = parse_date_range("в июне 2025 года")
     assert start == date(2025, 6, 1)
     assert end == date(2025, 6, 30)
+
+
+def test_parse_month_range_genitive_ru() -> None:
+    start, end = parse_date_range("ноября 2025 года")
+    assert start == date(2025, 11, 1)
+    assert end == date(2025, 11, 30)

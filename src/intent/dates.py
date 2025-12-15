@@ -94,6 +94,10 @@ _MONTH_ONLY_NOM_RE = re.compile(
     rf"\b(?P<m>{_RU_MONTH_PATTERN_NOM})\s+(?P<y>\d{{4}})(?:\s+(?:г|г\.|год|года))?\b"
 )
 
+_MONTH_ONLY_GEN_RE = re.compile(
+    rf"\b(?<!\d\s)(?P<m>{_RU_MONTH_PATTERN})\s+(?P<y>\d{{4}})(?:\s+(?:г|г\.|год|года))?\b"
+)
+
 
 def _parse_ru_date_fragment(fragment: str) -> date | None:
     dt = dateparser.parse(
@@ -163,6 +167,7 @@ def parse_date_range(text: str) -> tuple[date, date] | None:
     for regex, month_map in (
             (_MONTH_ONLY_PREP_RE, _RU_MONTHS_PREP),
             (_MONTH_ONLY_NOM_RE, _RU_MONTHS_NOM),
+            (_MONTH_ONLY_GEN_RE, _RU_MONTHS),
     ):
         match = regex.search(value)
         if match:

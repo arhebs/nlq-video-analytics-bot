@@ -49,6 +49,26 @@ def test_intent_forbids_metric_for_count_distinct_creators() -> None:
         Intent(operation=Operation.count_distinct_creators, metric=Metric.views)
 
 
+def test_intent_requires_date_range_for_count_distinct_publish_days() -> None:
+    with pytest.raises(ValueError):
+        Intent(operation=Operation.count_distinct_publish_days, metric=None, filters=Filters())
+
+
+def test_intent_forbids_metric_for_count_distinct_publish_days() -> None:
+    with pytest.raises(ValueError):
+        Intent(
+            operation=Operation.count_distinct_publish_days,
+            metric=Metric.views,
+            date_range=DateRange(
+                scope=DateRangeScope.videos_published_at,
+                start_date=date(2025, 11, 1),
+                end_date=date(2025, 11, 30),
+                inclusive=True,
+            ),
+            filters=Filters(),
+        )
+
+
 def test_snapshot_as_of_threshold_requires_snapshot_scope() -> None:
     with pytest.raises(ValueError):
         Intent(

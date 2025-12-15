@@ -107,7 +107,7 @@ def _has_count_videos_phrase(text: str) -> bool:
 
     tokens = text.split()
     for idx, tok in enumerate(tokens):
-        if tok not in {"сколько", "количество", "число"}:
+        if not (tok.startswith("скольк") or tok in {"количество", "число"}):
             continue
 
         lookahead = tokens[idx + 1: idx + 4]
@@ -124,7 +124,7 @@ def _has_count_creators_phrase(text: str) -> bool:
 
     tokens = text.split()
     for idx, tok in enumerate(tokens):
-        if tok not in {"сколько", "количество", "число"}:
+        if not (tok.startswith("скольк") or tok in {"количество", "число"}):
             continue
 
         lookahead = tokens[idx + 1: idx + 5]
@@ -136,6 +136,34 @@ def _has_count_creators_phrase(text: str) -> bool:
             return True
 
     return False
+
+
+def _has_distinct_publish_days_phrase(text: str) -> bool:
+    """Whether the wording is asking for a count of distinct publish calendar days."""
+
+    tokens = set(text.split())
+    has_count = (
+        any(t.startswith("скольк") for t in tokens)
+        or "количество" in tokens
+        or "число" in tokens
+    )
+    if not has_count:
+        return False
+
+    has_day = any(t.startswith("дн") for t in tokens)
+    if not has_day:
+        return False
+
+    has_video = any(t.startswith("видео") for t in tokens)
+    if not has_video:
+        return False
+
+    has_published = "публик" in text or "опублик" in text or "выш" in text
+    if not has_published:
+        return False
+
+    has_distinctness = "календар" in text or "разных" in tokens or "различ" in text
+    return has_distinctness
 
 
 def _parse_time_parts(hour: str, minute: str | None) -> dt_time | None:
@@ -193,6 +221,9 @@ def _detect_operation(text: str) -> Operation:
     if "сколько" in tokens and "видео" in tokens and any(t.startswith("нов") for t in tokens):
         return Operation.count_distinct_videos_with_positive_delta
 
+    if _has_distinct_publish_days_phrase(text):
+        return Operation.count_distinct_publish_days
+
     # Count videos explicitly asked as "сколько/количество ... видео".
     if _has_count_videos_phrase(text):
         return Operation.count_videos
@@ -216,7 +247,11 @@ def _detect_operation(text: str) -> Operation:
         ):
             return Operation.sum_total_metric
 
-    if "сколько" in tokens or "количество" in tokens or "число" in tokens:
+    if (
+        any(t.startswith("скольк") for t in tokens)
+        or "количество" in tokens
+        or "число" in tokens
+    ):
         if "видео" in tokens or any(t.startswith("видео") for t in tokens):
             return Operation.count_videos
         if any(t in {"ролик", "ролика", "ролики", "роликов"} for t in tokens):
@@ -333,6 +368,7 @@ def parse_intent(text: str) -> Intent:
         if operation in {
             Operation.count_videos,
             Operation.count_distinct_creators,
+            Operation.count_distinct_publish_days,
             Operation.sum_total_metric,
         }:
             scope = DateRangeScope.videos_published_at
@@ -358,7 +394,11 @@ def parse_intent(text: str) -> Intent:
     creator_id = _extract_creator_id(normalized)
 
     intent_metric = None
-    if operation not in {Operation.count_videos, Operation.count_distinct_creators}:
+    if operation not in {
+        Operation.count_videos,
+        Operation.count_distinct_creators,
+        Operation.count_distinct_publish_days,
+    }:
         intent_metric = detect_single_metric(normalized)
         if intent_metric is None:
             raise RulesParserError("metric is required/ambiguous")
