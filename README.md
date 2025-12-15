@@ -39,6 +39,17 @@ Optional readiness wait:
 bash scripts/wait_for_db.sh
 ```
 
+## Optional LLM parser (feature-flagged)
+
+The default parser is rules-based and deterministic. If you enable the optional LLM parser, it must return **strict
+Intent JSON** and is always validated (invalid output falls back to rules).
+
+Set in `.env`:
+
+- `LLM_ENABLED=true`
+- `LLM_API_KEY=...`
+- Optional: `LLM_MODEL`, `LLM_API_BASE`, `LLM_TIMEOUT_S`
+
 ## Migrations
 
 ```bash
