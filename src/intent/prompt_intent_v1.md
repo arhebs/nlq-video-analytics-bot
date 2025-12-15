@@ -46,6 +46,7 @@ All timestamps are stored as `timestamptz` and must be treated as **UTC** for co
 ## Operations (choose exactly one)
 
 - `count_videos`: count videos matching filters
+- `count_distinct_creators`: count distinct creators matching filters
 - `sum_total_metric`: sum final totals in `videos.<metric>_count`
 - `sum_delta_metric`: sum growth using snapshot deltas in `video_snapshots.delta_<metric>_count`
 - `count_distinct_videos_with_positive_delta`: count distinct videos with `delta_<metric>_count > 0`
@@ -79,7 +80,7 @@ Thresholds are combined with logical AND.
 
 ```json
 {
-  "operation": "count_videos | sum_total_metric | sum_delta_metric | count_distinct_videos_with_positive_delta | count_snapshots_with_negative_delta",
+  "operation": "count_videos | count_distinct_creators | sum_total_metric | sum_delta_metric | count_distinct_videos_with_positive_delta | count_snapshots_with_negative_delta",
   "metric": "views | likes | comments | reports | null",
   "date_range": null
   | {
@@ -110,6 +111,7 @@ Thresholds are combined with logical AND.
 Validation rules:
 
 - `metric` must be `null` when `operation="count_videos"`.
+- `metric` must be `null` when `operation="count_distinct_creators"`.
 - `metric` must be one of the 4 metrics for the other operations.
 - `time_window` is only supported for snapshot-based operations and requires a single-day `date_range` with
   `scope="snapshots_created_at"`.

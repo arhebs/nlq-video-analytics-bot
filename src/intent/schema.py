@@ -17,6 +17,7 @@ class Operation(StrEnum):
     """Supported query operation families."""
 
     count_videos = "count_videos"
+    count_distinct_creators = "count_distinct_creators"
     sum_total_metric = "sum_total_metric"
     sum_delta_metric = "sum_delta_metric"
     count_distinct_videos_with_positive_delta = "count_distinct_videos_with_positive_delta"
@@ -135,12 +136,12 @@ class Intent(BaseModel):
     def validate_semantics(self) -> Intent:
         """Enforce cross-field invariants required by the project semantics."""
 
-        if self.operation == Operation.count_videos:
+        if self.operation in {Operation.count_videos, Operation.count_distinct_creators}:
             if self.metric is not None:
-                raise ValueError("metric must be null for operation=count_videos")
+                raise ValueError("metric must be null for count operations")
         else:
             if self.metric is None:
-                raise ValueError("metric is required for non-count_videos operations")
+                raise ValueError("metric is required for metric-based operations")
 
         has_snapshot_as_of = any(
             t.applies_to == ThresholdAppliesTo.snapshot_as_of for t in self.filters.thresholds

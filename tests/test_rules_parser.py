@@ -23,6 +23,21 @@ def _assert_views_delta_growth_on_2025_11_28(intent: object) -> None:
     assert date_range.end_date.isoformat() == "2025-11-28"
 
 
+def _assert_final_views_gt_100k_threshold(intent: object) -> None:
+    filters = getattr(intent, "filters", None)
+    assert filters is not None
+
+    thresholds = getattr(filters, "thresholds", None)
+    assert thresholds is not None
+    assert len(thresholds) == 1
+
+    t = thresholds[0]
+    assert t.applies_to == ThresholdAppliesTo.final_total
+    assert t.metric == Metric.views
+    assert t.op == ">"
+    assert t.value == 100_000
+
+
 def test_parse_total_videos() -> None:
     intent = parse_intent("Сколько всего видео есть в системе?")
     assert intent.operation == Operation.count_videos
@@ -50,12 +65,7 @@ def test_parse_final_total_threshold() -> None:
     intent = parse_intent("Сколько видео набрало больше 100 000 просмотров за всё время?")
     assert intent.operation == Operation.count_videos
     assert intent.metric is None
-    assert len(intent.filters.thresholds) == 1
-    t = intent.filters.thresholds[0]
-    assert t.applies_to == ThresholdAppliesTo.final_total
-    assert t.metric == Metric.views
-    assert t.op == ">"
-    assert t.value == 100_000
+    _assert_final_views_gt_100k_threshold(intent)
 
 
 def test_parse_sum_delta_metric_on_day() -> None:
@@ -105,6 +115,17 @@ def test_parse_count_snapshots_with_negative_delta() -> None:
     assert intent.operation == Operation.count_snapshots_with_negative_delta
     assert intent.metric == Metric.views
     assert intent.date_range is None
+
+
+def test_parse_count_distinct_creators_with_threshold() -> None:
+    intent = parse_intent(
+        "Сколько разных креаторов имеют хотя бы одно видео, "
+        "которое в итоге набрало больше 100 000 просмотров?"
+    )
+    assert intent.operation == Operation.count_distinct_creators
+    assert intent.metric is None
+    assert intent.date_range is None
+    _assert_final_views_gt_100k_threshold(intent)
 
 
 def test_reactions_is_unsupported() -> None:

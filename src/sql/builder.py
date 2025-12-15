@@ -265,6 +265,7 @@ def build_query(intent: Intent) -> tuple[str, tuple[Any, ...]]:
 
     builders = {
         Operation.count_videos: _build_count_videos,
+        Operation.count_distinct_creators: _build_count_distinct_creators,
         Operation.sum_total_metric: _build_sum_total_metric,
         Operation.sum_delta_metric: _build_sum_delta_metric,
         Operation.count_distinct_videos_with_positive_delta: _build_count_distinct_positive_delta,
@@ -286,6 +287,19 @@ def _build_count_videos(intent: Intent) -> BuiltQuery:
     from_sql, clauses, params, cte_sql = _video_query_context(intent)
 
     sql = f"{cte_sql}SELECT COUNT(*)::bigint {from_sql} {_where_and(clauses)}".strip()
+    return BuiltQuery(sql=sql, params=tuple(params))
+
+
+def _build_count_distinct_creators(intent: Intent) -> BuiltQuery:
+    if intent.metric is not None:
+        raise SQLBuilderError("count_distinct_creators expects metric=null")
+
+    from_sql, clauses, params, cte_sql = _video_query_context(intent)
+
+    sql = (
+        f"{cte_sql}SELECT COUNT(DISTINCT v.creator_id)::bigint {from_sql} "
+        f"{_where_and(clauses)}"
+    ).strip()
     return BuiltQuery(sql=sql, params=tuple(params))
 
 

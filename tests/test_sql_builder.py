@@ -99,6 +99,31 @@ def test_build_count_videos_final_total_threshold_is_parameterized() -> None:
     assert _placeholder_count(sql) == len(params)
 
 
+def test_build_count_distinct_creators_with_threshold() -> None:
+    intent = Intent(
+        operation=Operation.count_distinct_creators,
+        metric=None,
+        filters=Filters(
+            thresholds=[
+                Threshold(
+                    applies_to=ThresholdAppliesTo.final_total,
+                    metric=Metric.views,
+                    op=">",
+                    value=100_000,
+                )
+            ]
+        ),
+    )
+    sql, params = build_query(intent)
+
+    assert "SELECT COUNT(DISTINCT v.creator_id)::bigint" in sql
+    assert "FROM videos v" in sql
+    assert "v.views_count > %s" in sql
+    assert "100000" not in sql
+    assert params == (100_000,)
+    assert _placeholder_count(sql) == len(params)
+
+
 def test_build_snapshot_as_of_threshold_uses_snap_max_cte() -> None:
     intent = Intent(
         operation=Operation.count_videos,

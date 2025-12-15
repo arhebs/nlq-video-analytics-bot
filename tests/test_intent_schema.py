@@ -44,6 +44,11 @@ def test_intent_forbids_metric_for_count_videos() -> None:
         Intent(operation=Operation.count_videos, metric=Metric.views)
 
 
+def test_intent_forbids_metric_for_count_distinct_creators() -> None:
+    with pytest.raises(ValueError):
+        Intent(operation=Operation.count_distinct_creators, metric=Metric.views)
+
+
 def test_snapshot_as_of_threshold_requires_snapshot_scope() -> None:
     with pytest.raises(ValueError):
         Intent(

@@ -119,6 +119,25 @@ def _has_count_videos_phrase(text: str) -> bool:
     return False
 
 
+def _has_count_creators_phrase(text: str) -> bool:
+    """Whether the wording is explicitly asking for a count of creators."""
+
+    tokens = text.split()
+    for idx, tok in enumerate(tokens):
+        if tok not in {"сколько", "количество", "число"}:
+            continue
+
+        lookahead = tokens[idx + 1: idx + 5]
+        if any(t.startswith("креатор") for t in lookahead):
+            return True
+        if any(t.startswith("creator") for t in lookahead):
+            return True
+        if any(t.startswith("автор") for t in lookahead):
+            return True
+
+    return False
+
+
 def _parse_time_parts(hour: str, minute: str | None) -> dt_time | None:
     """Parse a strict HH[:MM] fragment into a `datetime.time`."""
 
@@ -174,8 +193,18 @@ def _detect_operation(text: str) -> Operation:
     if "сколько" in tokens and "видео" in tokens and any(t.startswith("нов") for t in tokens):
         return Operation.count_distinct_videos_with_positive_delta
 
+    # Count videos explicitly asked as "сколько/количество ... видео".
+    if _has_count_videos_phrase(text):
+        return Operation.count_videos
+
+    # Count distinct creators matching filters.
+    if _has_count_creators_phrase(text):
+        return Operation.count_distinct_creators
+
     # Sum of final totals across videos (not deltas).
-    if metric is not None and not _has_count_videos_phrase(text):
+    if metric is not None and (
+            not _has_count_videos_phrase(text) and not _has_count_creators_phrase(text)
+    ):
         if (
                 "в сумме" in padded
                 or "суммар" in text
@@ -301,12 +330,20 @@ def parse_intent(text: str) -> Intent:
     date_range = None
     if date_tuple is not None:
         start_date, end_date = date_tuple
-        if operation in {Operation.count_videos, Operation.sum_total_metric}:
+        if operation in {
+            Operation.count_videos,
+            Operation.count_distinct_creators,
+            Operation.sum_total_metric,
+        }:
             scope = DateRangeScope.videos_published_at
         else:
             scope = DateRangeScope.snapshots_created_at
 
-        if as_of and operation in {Operation.count_videos, Operation.sum_total_metric}:
+        if as_of and operation in {
+            Operation.count_videos,
+            Operation.count_distinct_creators,
+            Operation.sum_total_metric,
+        }:
             scope = DateRangeScope.snapshots_created_at
         date_range = DateRange(
             scope=scope,
@@ -321,7 +358,7 @@ def parse_intent(text: str) -> Intent:
     creator_id = _extract_creator_id(normalized)
 
     intent_metric = None
-    if operation != Operation.count_videos:
+    if operation not in {Operation.count_videos, Operation.count_distinct_creators}:
         intent_metric = detect_single_metric(normalized)
         if intent_metric is None:
             raise RulesParserError("metric is required/ambiguous")
