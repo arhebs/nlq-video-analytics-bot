@@ -119,6 +119,7 @@ def prepared_schema() -> Iterator[str]:
 
     yield schema
 
+    # noinspection PyBroadException
     try:
         with psycopg.connect(database_url) as conn:
             with conn.transaction():
@@ -180,6 +181,11 @@ async def test_example_queries_end_to_end(pool: Any, prepared_schema: str) -> No
         ("Сколько видео набрало больше 100 000 просмотров за всё время?", 2),
         ("На сколько просмотров в сумме выросли все видео 28 ноября 2025?", 18),
         ("Сколько разных видео получали новые просмотры 27 ноября 2025?", 2),
+        (
+            "Сколько всего есть замеров статистики (по всем видео), "
+            "в которых число просмотров за час оказалось отрицательным?",
+            1,
+        ),
     ]
 
     for text, expected in cases:

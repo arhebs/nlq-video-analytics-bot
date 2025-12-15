@@ -70,8 +70,42 @@ def _has_as_of_phrase(text: str) -> bool:
     return False
 
 
+def _has_snapshot_term(text: str) -> bool:
+    tokens = set(text.split())
+    return (
+            any(t.startswith("замер") for t in tokens)
+            or any(t.startswith("измер") for t in tokens)
+            or any(t.startswith("снимк") for t in tokens)
+            or any(t.startswith("снапш") for t in tokens)
+            or "snapshot" in tokens
+            or "snapshots" in tokens
+    )
+
+
+def _has_negative_delta_phrase(text: str) -> bool:
+    padded = f" {text} "
+    return (
+            "отриц" in text
+            or " стало меньше " in padded
+            or " уменьш" in padded
+            or " сниз" in padded
+            or " упал " in padded
+            or " упало " in padded
+            or " паден" in padded
+    )
+
+
 def _detect_operation(text: str) -> Operation:
     padded = f" {text} "
+    tokens = set(text.split())
+
+    # Count snapshot measurements where per-snapshot delta is negative.
+    if (
+            _has_snapshot_term(text)
+            and _has_negative_delta_phrase(text)
+            and ("сколько" in tokens or "количество" in tokens or "число" in tokens)
+    ):
+        return Operation.count_snapshots_with_negative_delta
 
     # Sum of deltas ("growth on a day") intent.
     if (
@@ -86,7 +120,6 @@ def _detect_operation(text: str) -> Operation:
         return Operation.sum_delta_metric
 
     # Count distinct videos with positive delta.
-    tokens = set(text.split())
     if "сколько" in tokens and "видео" in tokens and any(t.startswith("нов") for t in tokens):
         return Operation.count_distinct_videos_with_positive_delta
 

@@ -19,6 +19,7 @@ class Operation(StrEnum):
     count_videos = "count_videos"
     sum_delta_metric = "sum_delta_metric"
     count_distinct_videos_with_positive_delta = "count_distinct_videos_with_positive_delta"
+    count_snapshots_with_negative_delta = "count_snapshots_with_negative_delta"
 
 
 class Metric(StrEnum):
@@ -136,6 +137,7 @@ class Intent(BaseModel):
         if self.operation in {
             Operation.sum_delta_metric,
             Operation.count_distinct_videos_with_positive_delta,
+            Operation.count_snapshots_with_negative_delta,
         }:
             if (
                     self.date_range is not None

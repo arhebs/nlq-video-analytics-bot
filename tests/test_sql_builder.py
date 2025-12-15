@@ -163,3 +163,18 @@ def test_build_count_distinct_positive_delta_shape() -> None:
     assert params[1].isoformat() == "2025-11-28T00:00:00+00:00"
     assert _placeholder_count(sql) == len(params)
 
+
+def test_build_count_snapshots_with_negative_delta_shape() -> None:
+    intent = Intent(
+        operation=Operation.count_snapshots_with_negative_delta,
+        metric=Metric.views,
+        date_range=None,
+        filters=Filters(),
+    )
+    sql, params = build_query(intent)
+
+    assert "SELECT COUNT(*)::bigint" in sql
+    assert "FROM video_snapshots s JOIN videos v ON v.id = s.video_id" in sql
+    assert "s.delta_views_count < 0" in sql
+    assert params == ()
+    assert _placeholder_count(sql) == len(params)

@@ -203,6 +203,7 @@ def build_query(intent: Intent) -> tuple[str, tuple[Any, ...]]:
         Operation.count_videos: _build_count_videos,
         Operation.sum_delta_metric: _build_sum_delta_metric,
         Operation.count_distinct_videos_with_positive_delta: _build_count_distinct_positive_delta,
+        Operation.count_snapshots_with_negative_delta: _build_count_snapshots_with_negative_delta,
     }
 
     try:
@@ -298,4 +299,19 @@ def _build_count_distinct_positive_delta(intent: Intent) -> BuiltQuery:
         f"{cte_sql}SELECT COUNT(DISTINCT s.video_id)::bigint {from_sql} "
         f"{_where_and(clauses)}"
     ).strip()
+    return BuiltQuery(sql=sql, params=tuple(params))
+
+
+def _build_count_snapshots_with_negative_delta(intent: Intent) -> BuiltQuery:
+    if intent.metric is None:
+        raise SQLBuilderError("count_snapshots_with_negative_delta requires a metric")
+
+    delta_col = SNAPSHOT_DELTA_COLUMNS[intent.metric]
+
+    from_sql, clauses, params, cte_sql = _snapshot_query_context(
+        intent,
+        initial_clauses=[f"s.{delta_col} < 0"],
+    )
+
+    sql = f"{cte_sql}SELECT COUNT(*)::bigint {from_sql} {_where_and(clauses)}".strip()
     return BuiltQuery(sql=sql, params=tuple(params))

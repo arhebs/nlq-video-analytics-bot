@@ -60,3 +60,18 @@ def test_snapshot_as_of_threshold_requires_snapshot_scope() -> None:
                 ]
             ),
         )
+
+
+def test_negative_delta_snapshot_op_requires_snapshot_scope_when_dated() -> None:
+    with pytest.raises(ValueError):
+        Intent(
+            operation=Operation.count_snapshots_with_negative_delta,
+            metric=Metric.views,
+            date_range=DateRange(
+                scope=DateRangeScope.videos_published_at,
+                start_date=date(2025, 11, 28),
+                end_date=date(2025, 11, 28),
+                inclusive=True,
+            ),
+            filters=Filters(),
+        )

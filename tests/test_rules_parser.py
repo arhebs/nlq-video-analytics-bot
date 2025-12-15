@@ -67,6 +67,16 @@ def test_parse_distinct_videos_positive_delta() -> None:
     assert intent.date_range.start_date.isoformat() == "2025-11-27"
 
 
+def test_parse_count_snapshots_with_negative_delta() -> None:
+    intent = parse_intent(
+        "Сколько всего есть замеров статистики (по всем видео), "
+        "в которых число просмотров за час оказалось отрицательным?"
+    )
+    assert intent.operation == Operation.count_snapshots_with_negative_delta
+    assert intent.metric == Metric.views
+    assert intent.date_range is None
+
+
 def test_reactions_is_unsupported() -> None:
     with pytest.raises(RulesParserError):
         parse_intent("Сколько реакций было 28 ноября 2025?")
