@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, time
 
 import pytest
 
@@ -15,6 +15,7 @@ from src.intent.schema import (
     Operation,
     Threshold,
     ThresholdAppliesTo,
+    TimeWindow,
 )
 
 
@@ -78,5 +79,31 @@ def test_negative_delta_snapshot_op_requires_snapshot_scope_when_dated() -> None
                 end_date=date(2025, 11, 28),
                 inclusive=True,
             ),
+            filters=Filters(),
+        )
+
+
+def test_time_window_requires_date_range() -> None:
+    with pytest.raises(ValueError):
+        Intent(
+            operation=Operation.sum_delta_metric,
+            metric=Metric.views,
+            time_window=TimeWindow(start_time=time(10), end_time=time(15)),
+            filters=Filters(),
+        )
+
+
+def test_time_window_requires_single_day_snapshot_range() -> None:
+    with pytest.raises(ValueError):
+        Intent(
+            operation=Operation.sum_delta_metric,
+            metric=Metric.views,
+            date_range=DateRange(
+                scope=DateRangeScope.snapshots_created_at,
+                start_date=date(2025, 11, 27),
+                end_date=date(2025, 11, 28),
+                inclusive=True,
+            ),
+            time_window=TimeWindow(start_time=time(10), end_time=time(15)),
             filters=Filters(),
         )

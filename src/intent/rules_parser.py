@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import time as dt_time
 
 from src.intent import dates
 from src.intent.dictionaries import (
@@ -27,6 +28,7 @@ from src.intent.schema import (
     Operation,
     Threshold,
     ThresholdAppliesTo,
+    TimeWindow,
 )
 
 
@@ -43,6 +45,11 @@ class _ThresholdMatch:
 
 _CREATOR_ID_RE = re.compile(
     r"\b(?:креатора?|creator)(?:\s+с)?\s*(?:id|айди|идентификатор|creator_id)?\s*[=:]?\s*(?P<id>[0-9a-z_\-]{3,})\b"
+)
+
+_TIME_WINDOW_RE = re.compile(
+    r"\bс\s+(?P<h1>\d{1,2})(?:\s+(?P<m1>\d{2}))?\s+до\s+"
+    r"(?P<h2>\d{1,2})(?:\s+(?P<m2>\d{2}))?\b"
 )
 
 
@@ -110,6 +117,32 @@ def _has_count_videos_phrase(text: str) -> bool:
             return True
 
     return False
+
+
+def _parse_time_parts(hour: str, minute: str | None) -> dt_time | None:
+    """Parse a strict HH[:MM] fragment into a `datetime.time`."""
+
+    try:
+        hour_value = int(hour)
+        minute_value = int(minute) if minute is not None else 0
+        return dt_time(hour_value, minute_value)
+    except ValueError:
+        return None
+
+
+def _extract_time_window(text: str) -> TimeWindow | None:
+    """Extract a time window like "с 10:00 до 15:00" (normalized as "с 10 00 до 15 00")."""
+
+    match = _TIME_WINDOW_RE.search(text)
+    if not match:
+        return None
+
+    start_time = _parse_time_parts(match.group("h1"), match.group("m1"))
+    end_time = _parse_time_parts(match.group("h2"), match.group("m2"))
+    if start_time is None or end_time is None:
+        return None
+
+    return TimeWindow(start_time=start_time, end_time=end_time)
 
 
 def _detect_operation(text: str) -> Operation:
@@ -263,7 +296,8 @@ def parse_intent(text: str) -> Intent:
 
     thresholds = _parse_thresholds(normalized, applies_to=applies_to)
 
-    date_tuple = None if _has_all_time_phrase(normalized) else dates.parse_date_range(normalized)
+    # Date parsing benefits from keeping punctuation (e.g. "10:00"), so parse from raw text.
+    date_tuple = None if _has_all_time_phrase(normalized) else dates.parse_date_range(text)
     date_range = None
     if date_tuple is not None:
         start_date, end_date = date_tuple
@@ -292,11 +326,20 @@ def parse_intent(text: str) -> Intent:
         if intent_metric is None:
             raise RulesParserError("metric is required/ambiguous")
 
+    time_window = None
+    if operation in {
+        Operation.sum_delta_metric,
+        Operation.count_distinct_videos_with_positive_delta,
+        Operation.count_snapshots_with_negative_delta,
+    }:
+        time_window = _extract_time_window(normalized)
+
     try:
         return Intent(
             operation=operation,
             metric=intent_metric,
             date_range=date_range,
+            time_window=time_window,
             filters=Filters(creator_id=creator_id, thresholds=thresholds),
         )
     except Exception as exc:  # noqa: BLE001 - caller handles unsupported inputs as parse failure

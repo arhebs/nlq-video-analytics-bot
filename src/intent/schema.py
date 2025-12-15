@@ -6,7 +6,7 @@ All parsing must validate against these models; otherwise the request is treated
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, time
 from enum import StrEnum
 from typing import Any, Literal
 
@@ -72,6 +72,23 @@ class DateRange(BaseModel):
         return self
 
 
+class TimeWindow(BaseModel):
+    """A time-of-day filter applied within a single UTC calendar day."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    start_time: time
+    end_time: time
+
+    @model_validator(mode="after")
+    def validate_range(self) -> TimeWindow:
+        """Validate that the time window is well-formed (`start_time <= end_time`)."""
+
+        if self.start_time > self.end_time:
+            raise ValueError("start_time must be <= end_time")
+        return self
+
+
 class Threshold(BaseModel):
     """A numeric threshold filter combined with AND across all thresholds."""
 
@@ -111,6 +128,7 @@ class Intent(BaseModel):
     operation: Operation
     metric: Metric | None = None
     date_range: DateRange | None = None
+    time_window: TimeWindow | None = None
     filters: Filters = Field(default_factory=Filters)
 
     @model_validator(mode="after")
@@ -134,6 +152,20 @@ class Intent(BaseModel):
                 raise ValueError(
                     "snapshot_as_of thresholds require date_range.scope=snapshots_created_at"
                 )
+
+        if self.time_window is not None:
+            if self.date_range is None:
+                raise ValueError("time_window requires a date_range")
+            if self.date_range.scope != DateRangeScope.snapshots_created_at:
+                raise ValueError("time_window requires date_range.scope=snapshots_created_at")
+            if self.date_range.start_date != self.date_range.end_date:
+                raise ValueError("time_window requires a single-day date_range")
+            if self.operation not in {
+                Operation.sum_delta_metric,
+                Operation.count_distinct_videos_with_positive_delta,
+                Operation.count_snapshots_with_negative_delta,
+            }:
+                raise ValueError("time_window is only supported for snapshot-based operations")
 
         if self.operation in {
             Operation.sum_delta_metric,

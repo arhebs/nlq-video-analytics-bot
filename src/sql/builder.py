@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from src.intent.dates import inclusive_dates_to_half_open
@@ -80,6 +80,18 @@ def _build_threshold_clause(
 def _build_date_clause(column_ref: str, date_range: DateRange) -> tuple[str, list[Any]]:
     start_dt, end_dt = _half_open_bounds(date_range)
     return f"{column_ref} >= %s AND {column_ref} < %s", [start_dt, end_dt]
+
+
+def _build_time_window_clause(column_ref: str, intent: Intent) -> tuple[str, list[Any]]:
+    if intent.date_range is None or intent.time_window is None:
+        raise SQLBuilderError(
+            "time window clause requires intent.date_range and intent.time_window"
+        )
+
+    day = intent.date_range.start_date
+    start_dt = datetime.combine(day, intent.time_window.start_time, tzinfo=UTC)
+    end_dt = datetime.combine(day, intent.time_window.end_time, tzinfo=UTC)
+    return f"{column_ref} >= %s AND {column_ref} <= %s", [start_dt, end_dt]
 
 
 def _build_snap_max_cte(date_range: DateRange) -> tuple[str, list[Any]]:
@@ -170,7 +182,10 @@ def _snapshot_query_context(
 
     # Date filter on snapshots.
     if intent.date_range is not None:
-        clause, p = _build_date_clause("s.created_at", intent.date_range)
+        if intent.time_window is None:
+            clause, p = _build_date_clause("s.created_at", intent.date_range)
+        else:
+            clause, p = _build_time_window_clause("s.created_at", intent)
         clauses.append(clause)
         params.extend(p)
 

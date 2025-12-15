@@ -39,6 +39,9 @@ All timestamps are stored as `timestamptz` and must be treated as **UTC** for co
 - Inclusive ranges (e.g. “с 1 по 5 ноября 2025 включительно”) must be represented as:
     - `start_date="2025-11-01"`, `end_date="2025-11-05"`, `inclusive=true`
     - The SQL layer will convert this to half-open bounds.
+- If the user provides a time-of-day window like “с 10:00 до 15:00” for a specific day:
+    - represent it as `time_window` with `start_time` and `end_time`
+    - `date_range` must be present, must use `scope="snapshots_created_at"`, and must be a single day
 
 ## Operations (choose exactly one)
 
@@ -80,22 +83,27 @@ Thresholds are combined with logical AND.
   "metric": "views | likes | comments | reports | null",
   "date_range": null
   | {
-  "scope": "videos_published_at | snapshots_created_at",
-  "start_date": "YYYY-MM-DD",
-  "end_date": "YYYY-MM-DD",
-  "inclusive": true
-},
-"filters": {
-"creator_id": "string|null",
-"thresholds": [
-{
-"applies_to": "final_total | snapshot_as_of",
-"metric": "views|likes|comments|reports",
-"op": ">|>=|<|<=|=",
-"value": 100000
-}
-]
-}
+    "scope": "videos_published_at | snapshots_created_at",
+    "start_date": "YYYY-MM-DD",
+    "end_date": "YYYY-MM-DD",
+    "inclusive": true
+  },
+  "time_window": null
+  | {
+    "start_time": "HH:MM",
+    "end_time": "HH:MM"
+  },
+  "filters": {
+    "creator_id": "string|null",
+    "thresholds": [
+      {
+        "applies_to": "final_total | snapshot_as_of",
+        "metric": "views|likes|comments|reports",
+        "op": ">|>=|<|<=|=",
+        "value": 100000
+      }
+    ]
+  }
 }
 ```
 
@@ -103,3 +111,5 @@ Validation rules:
 
 - `metric` must be `null` when `operation="count_videos"`.
 - `metric` must be one of the 4 metrics for the other operations.
+- `time_window` is only supported for snapshot-based operations and requires a single-day `date_range` with
+  `scope="snapshots_created_at"`.

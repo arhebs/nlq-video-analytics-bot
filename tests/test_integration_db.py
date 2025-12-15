@@ -13,7 +13,7 @@ import os
 import uuid
 from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
-from typing import Any, LiteralString, NoReturn, cast
+from typing import Any, LiteralString, cast
 
 import psycopg
 import pytest
@@ -31,7 +31,7 @@ from src.sql.builder import build_query
 _FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "videos_fixture.json"
 
 
-def _skip(reason: str) -> NoReturn:
+def _skip(reason: str) -> None:
     pytest.skip(reason)
 
 
@@ -180,6 +180,11 @@ async def test_example_queries_end_to_end(pool: Any, prepared_schema: str) -> No
         ),
         ("Сколько видео набрало больше 100 000 просмотров за всё время?", 2),
         ("На сколько просмотров в сумме выросли все видео 28 ноября 2025?", 18),
+        (
+            "На сколько просмотров суммарно выросли все видео креатора с id c01 "
+            "в промежутке с 10:00 до 15:00 28 ноября 2025 года?",
+            5,
+        ),
         (
             "Какое суммарное количество просмотров набрали все видео, "
             "опубликованные в ноябре 2025 года?",

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, time
 
 from src.intent.schema import (
     DateRange,
@@ -13,6 +13,7 @@ from src.intent.schema import (
     Operation,
     Threshold,
     ThresholdAppliesTo,
+    TimeWindow,
 )
 from src.sql.builder import build_query
 
@@ -161,6 +162,28 @@ def test_build_sum_delta_metric_shape() -> None:
     assert "v.creator_id = %s" in sql
     assert "v.likes_count >= %s" in sql
     assert "aca1061a9d324ecf8c3fa2bb32d7be63" not in sql
+    assert _placeholder_count(sql) == len(params)
+
+
+def test_build_sum_delta_metric_with_time_window_filters_created_at() -> None:
+    intent = Intent(
+        operation=Operation.sum_delta_metric,
+        metric=Metric.views,
+        date_range=DateRange(
+            scope=DateRangeScope.snapshots_created_at,
+            start_date=date(2025, 11, 28),
+            end_date=date(2025, 11, 28),
+            inclusive=True,
+        ),
+        time_window=TimeWindow(start_time=time(10), end_time=time(15)),
+        filters=Filters(creator_id="c01"),
+    )
+    sql, params = build_query(intent)
+
+    assert "s.created_at >= %s AND s.created_at <= %s" in sql
+    assert params[0].isoformat() == "2025-11-28T10:00:00+00:00"
+    assert params[1].isoformat() == "2025-11-28T15:00:00+00:00"
+    assert params[2] == "c01"
     assert _placeholder_count(sql) == len(params)
 
 
