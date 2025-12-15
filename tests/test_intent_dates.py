@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timezone
+from datetime import UTC, date
 
 from src.intent.dates import inclusive_dates_to_half_open, parse_date_range
 
@@ -23,5 +23,5 @@ def test_inclusive_to_half_open_conversion() -> None:
     start_dt, end_dt = inclusive_dates_to_half_open(date(2025, 11, 1), date(2025, 11, 5))
     assert start_dt.isoformat() == "2025-11-01T00:00:00+00:00"
     assert end_dt.isoformat() == "2025-11-06T00:00:00+00:00"
-    assert start_dt.tzinfo == timezone.utc
-    assert end_dt.tzinfo == timezone.utc
+    assert start_dt.tzinfo == UTC
+    assert end_dt.tzinfo == UTC

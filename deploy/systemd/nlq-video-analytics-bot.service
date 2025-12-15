@@ -1,0 +1,23 @@
+[Unit]
+Description=Video Analytics NLQ Telegram Bot
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+
+# Adjust these paths to your server.
+WorkingDirectory=/opt/nlq-video-analytics-bot
+EnvironmentFile=/opt/nlq-video-analytics-bot/.env
+ExecStart=/opt/nlq-video-analytics-bot/.venv/bin/python -m src.bot.main
+
+Restart=always
+RestartSec=5
+
+# Strongly recommended: run as a non-root user and lock down permissions.
+User=nlqbot
+Group=nlqbot
+
+[Install]
+WantedBy=multi-user.target
+

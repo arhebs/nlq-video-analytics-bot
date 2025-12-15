@@ -9,7 +9,8 @@ import os
 def configure_logging(level: str | None = None) -> None:
     """Configure Python logging for the process.
 
-    Logs are intended for internal diagnostics only and must never be sent back to the Telegram user.
+    Logs are intended for internal diagnostics only and must never be sent back to the Telegram
+    user.
     """
 
     log_level = (level or os.getenv("LOG_LEVEL") or "INFO").upper()
@@ -20,4 +21,3 @@ def configure_logging(level: str | None = None) -> None:
 
     # Reduce noisy third-party logs by default.
     logging.getLogger("aiogram.event").setLevel(logging.WARNING)
-

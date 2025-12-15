@@ -6,8 +6,8 @@ connection is configured to use UTC at the session level.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from dotenv import load_dotenv
 from psycopg import AsyncConnection

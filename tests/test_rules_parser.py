@@ -24,7 +24,8 @@ def test_parse_total_videos() -> None:
 
 def test_parse_creator_and_inclusive_range() -> None:
     intent = parse_intent(
-        "Сколько видео у креатора с id aca1061a9d324ecf8c3fa2bb32d7be63 вышло с 1 по 5 ноября 2025 включительно?"
+        "Сколько видео у креатора с id aca1061a9d324ecf8c3fa2bb32d7be63 "
+        "вышло с 1 по 5 ноября 2025 включительно?"
     )
     assert intent.operation == Operation.count_videos
     assert intent.metric is None

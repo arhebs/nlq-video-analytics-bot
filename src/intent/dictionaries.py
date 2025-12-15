@@ -46,7 +46,11 @@ class ComparatorMatch:
 
 
 _COMPARATOR_MATCHES: list[ComparatorMatch] = sorted(
-    (ComparatorMatch(op=op, phrase=phrase) for op, phrases in COMPARATOR_SYNONYMS.items() for phrase in phrases),
+    (
+        ComparatorMatch(op=op, phrase=phrase)
+        for op, phrases in COMPARATOR_SYNONYMS.items()
+        for phrase in phrases
+    ),
     key=lambda m: (-len(m.phrase), m.phrase),
 )
 

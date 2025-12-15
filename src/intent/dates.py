@@ -8,13 +8,11 @@ All user "dates" are interpreted as UTC calendar days:
 from __future__ import annotations
 
 import re
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 
 import dateparser
 from dateparser.conf import Settings as DateparserSettings
 from dateparser.search import search_dates
-
-UTC = timezone.utc
 
 _DATEPARSER_SETTINGS = DateparserSettings().replace(
     STRICT_PARSING=True,

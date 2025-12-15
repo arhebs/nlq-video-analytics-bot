@@ -72,9 +72,15 @@ def load_dataset(*, path: str | None, url: str | None, truncate: bool, batch_siz
 
                 cur.executemany(
                     """
-                    INSERT INTO videos (id, creator_id, video_created_at,
-                                        views_count, likes_count, comments_count, reports_count,
-                                        created_at, updated_at)
+                    INSERT INTO videos (id,
+                                        creator_id,
+                                        video_created_at,
+                                        views_count,
+                                        likes_count,
+                                        comments_count,
+                                        reports_count,
+                                        created_at,
+                                        updated_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (id) DO
                     UPDATE SET
                         creator_id = EXCLUDED.creator_id,
@@ -92,11 +98,18 @@ def load_dataset(*, path: str | None, url: str | None, truncate: bool, batch_siz
                 for snapshot_batch in _chunks(iter_snapshot_rows(videos), batch_size):
                     cur.executemany(
                         """
-                        INSERT INTO video_snapshots (id, video_id,
-                                                     views_count, likes_count, comments_count, reports_count,
-                                                     delta_views_count, delta_likes_count,
-                                                     delta_comments_count, delta_reports_count,
-                                                     created_at, updated_at)
+                        INSERT INTO video_snapshots (id,
+                                                     video_id,
+                                                     views_count,
+                                                     likes_count,
+                                                     comments_count,
+                                                     reports_count,
+                                                     delta_views_count,
+                                                     delta_likes_count,
+                                                     delta_comments_count,
+                                                     delta_reports_count,
+                                                     created_at,
+                                                     updated_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (id) DO
                         UPDATE SET
                             video_id = EXCLUDED.video_id,

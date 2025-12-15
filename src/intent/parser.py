@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from src.intent.llm_parser import LLMParserError, llm_config_from_env, parse_intent_json_via_llm
-from src.intent.rules_parser import RulesParserError, parse_intent as parse_rules_intent
+from src.intent.rules_parser import RulesParserError
+from src.intent.rules_parser import parse_intent as parse_rules_intent
 from src.intent.schema import Intent, intent_from_obj
 
 
@@ -25,7 +26,12 @@ class ParseResult:
     source: ParseSource
 
 
-def parse_intent_with_source(text: str, *, llm_enabled: bool, llm_api_key: str | None = None) -> ParseResult:
+def parse_intent_with_source(
+        text: str,
+        *,
+        llm_enabled: bool,
+        llm_api_key: str | None = None,
+) -> ParseResult:
     """Parse text into an Intent object.
 
     Strategy:

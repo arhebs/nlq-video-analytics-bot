@@ -1,13 +1,13 @@
 """Environment configuration and validation.
 
-This module defines the strongly-typed application settings loaded from environment variables (optionally
-via a local `.env` file). It enforces critical invariants required by the project specification, such as
-locking the DB session timezone to UTC for deterministic date boundaries.
+This module defines strongly-typed application settings loaded from environment variables
+(optionally via a local `.env` file).
+
+It enforces critical invariants required by the project specification, such as locking the DB
+session timezone to UTC for deterministic date boundaries.
 """
 
 from __future__ import annotations
-
-from typing import Optional
 
 from pydantic import Field, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     db_timezone: str = Field(default="UTC", alias="DB_TIMEZONE")
 
     llm_enabled: bool = Field(default=False, alias="LLM_ENABLED")
-    llm_api_key: Optional[str] = Field(default=None, alias="LLM_API_KEY")
+    llm_api_key: str | None = Field(default=None, alias="LLM_API_KEY")
 
     @field_validator("db_timezone")
     @classmethod
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
         return "UTC"
 
     @model_validator(mode="after")
-    def validate_llm_config(self) -> "Settings":
+    def validate_llm_config(self) -> Settings:
         """Validate the optional LLM parser configuration.
 
         If LLM intent parsing is enabled, an API key must be provided.

@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from src.intent.dictionaries import detect_comparator, detect_single_metric, has_ambiguous_metric_term
+from src.intent.dictionaries import (
+    detect_comparator,
+    detect_single_metric,
+    has_ambiguous_metric_term,
+)
 from src.intent.schema import Metric
 
 

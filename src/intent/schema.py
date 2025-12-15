@@ -62,7 +62,7 @@ class DateRange(BaseModel):
     inclusive: Literal[True] = True
 
     @model_validator(mode="after")
-    def validate_range(self) -> "DateRange":
+    def validate_range(self) -> DateRange:
         """Validate that the inclusive range is well-formed (`start_date <= end_date`)."""
 
         if self.start_date > self.end_date:
@@ -81,11 +81,12 @@ class Threshold(BaseModel):
     value: int
 
     @model_validator(mode="after")
-    def validate_value(self) -> "Threshold":
+    def validate_value(self) -> Threshold:
         """Validate threshold value fits into Postgres BIGINT bounds."""
 
         # Counts are non-negative in the dataset; negative thresholds are allowed but rarely useful.
-        # Keep the validation minimal: ensure it's an int (already enforced) and fits common SQL types.
+        # Keep the validation minimal: ensure it's an int (already enforced) and fits common SQL
+        # types.
         if self.value < -(2 ** 63) or self.value > 2 ** 63 - 1:
             raise ValueError("value is out of supported BIGINT range")
         return self
@@ -111,7 +112,7 @@ class Intent(BaseModel):
     filters: Filters = Field(default_factory=Filters)
 
     @model_validator(mode="after")
-    def validate_semantics(self) -> "Intent":
+    def validate_semantics(self) -> Intent:
         """Enforce cross-field invariants required by the project semantics."""
 
         if self.operation == Operation.count_videos:
@@ -128,13 +129,18 @@ class Intent(BaseModel):
             if self.date_range is None:
                 raise ValueError("snapshot_as_of thresholds require a date_range")
             if self.date_range.scope != DateRangeScope.snapshots_created_at:
-                raise ValueError("snapshot_as_of thresholds require date_range.scope=snapshots_created_at")
+                raise ValueError(
+                    "snapshot_as_of thresholds require date_range.scope=snapshots_created_at"
+                )
 
         if self.operation in {
             Operation.sum_delta_metric,
             Operation.count_distinct_videos_with_positive_delta,
         }:
-            if self.date_range is not None and self.date_range.scope != DateRangeScope.snapshots_created_at:
+            if (
+                    self.date_range is not None
+                    and self.date_range.scope != DateRangeScope.snapshots_created_at
+            ):
                 raise ValueError("delta operations require date_range.scope=snapshots_created_at")
 
         return self

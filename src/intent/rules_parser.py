@@ -13,8 +13,8 @@ from dataclasses import dataclass
 
 from src.intent import dates
 from src.intent.dictionaries import (
-    METRIC_TERM_TO_METRIC,
     _COMPARATOR_MATCHES,
+    METRIC_TERM_TO_METRIC,
     detect_single_metric,
     has_ambiguous_metric_term,
 )
@@ -208,7 +208,12 @@ def parse_intent(text: str) -> Intent:
             scope = DateRangeScope.snapshots_created_at
         elif as_of:
             scope = DateRangeScope.snapshots_created_at
-        date_range = DateRange(scope=scope, start_date=start_date, end_date=end_date, inclusive=True)
+        date_range = DateRange(
+            scope=scope,
+            start_date=start_date,
+            end_date=end_date,
+            inclusive=True,
+        )
     elif as_of:
         # "As-of" requires a date to define a snapshot window.
         raise RulesParserError("as-of threshold requires a date")

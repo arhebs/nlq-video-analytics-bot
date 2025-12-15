@@ -7,6 +7,7 @@ leading '-'). On any unsupported input or internal error, reply `0` and log inte
 from __future__ import annotations
 
 import logging
+import re
 from time import monotonic
 
 from aiogram.types import Message
@@ -18,10 +19,20 @@ from src.intent.parser import IntentParserError, parse_intent_with_source
 from src.sql.builder import SQLBuilderError, build_query
 
 logger = logging.getLogger(__name__)
+_INTEGER_REPLY_RE = re.compile(r"^-?\d+$")
 
 
 def _is_command_text(text: str) -> bool:
     return text.lstrip().startswith("/")
+
+
+def _sanitize_reply(text: str) -> str:
+    """Return a safe digits-only reply string (fallback to `0`)."""
+
+    value = (text or "").strip()
+    if _INTEGER_REPLY_RE.fullmatch(value):
+        return value
+    return "0"
 
 
 async def handle_message(message: Message, app: App) -> None:
@@ -32,8 +43,8 @@ async def handle_message(message: Message, app: App) -> None:
 
     # noinspection PyBroadException
     try:
-        raw_text = message.text or ""
-        if not raw_text or _is_command_text(raw_text):
+        raw_text = (message.text or message.caption or "")
+        if not raw_text.strip() or _is_command_text(raw_text):
             await message.answer("0")
             return
 
@@ -62,7 +73,8 @@ async def handle_message(message: Message, app: App) -> None:
         latency_ms = int((monotonic() - started) * 1000)
         logger.info("unsupported reason=%s latency_ms=%d", exc, latency_ms)
     except Exception:
-        # Handler boundary: any internal error must result in a numeric reply ("0"), without leaking details.
+        # Handler boundary: any internal error must result in a numeric reply ("0"),
+        # without leaking details.
         logger.exception("handler failed")
 
-    await message.answer(result_text)
+    await message.answer(_sanitize_reply(result_text))
