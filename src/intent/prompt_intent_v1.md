@@ -43,6 +43,7 @@ All timestamps are stored as `timestamptz` and must be treated as **UTC** for co
 ## Operations (choose exactly one)
 
 - `count_videos`: count videos matching filters
+- `sum_total_metric`: sum final totals in `videos.<metric>_count`
 - `sum_delta_metric`: sum growth using snapshot deltas in `video_snapshots.delta_<metric>_count`
 - `count_distinct_videos_with_positive_delta`: count distinct videos with `delta_<metric>_count > 0`
 - `count_snapshots_with_negative_delta`: count snapshot rows with `delta_<metric>_count < 0`
@@ -75,7 +76,7 @@ Thresholds are combined with logical AND.
 
 ```json
 {
-  "operation": "count_videos | sum_delta_metric | count_distinct_videos_with_positive_delta | count_snapshots_with_negative_delta",
+  "operation": "count_videos | sum_total_metric | sum_delta_metric | count_distinct_videos_with_positive_delta | count_snapshots_with_negative_delta",
   "metric": "views | likes | comments | reports | null",
   "date_range": null
   | {

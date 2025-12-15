@@ -58,6 +58,18 @@ def test_parse_sum_delta_metric_on_day() -> None:
     assert intent.date_range.end_date.isoformat() == "2025-11-28"
 
 
+def test_parse_sum_total_metric_for_month_published() -> None:
+    intent = parse_intent(
+        "Какое суммарное количество просмотров набрали все видео, опубликованные в июне 2025 года?"
+    )
+    assert intent.operation == Operation.sum_total_metric
+    assert intent.metric == Metric.views
+    assert intent.date_range is not None
+    assert intent.date_range.scope == DateRangeScope.videos_published_at
+    assert intent.date_range.start_date.isoformat() == "2025-06-01"
+    assert intent.date_range.end_date.isoformat() == "2025-06-30"
+
+
 def test_parse_distinct_videos_positive_delta() -> None:
     intent = parse_intent("Сколько разных видео получали новые просмотры 27 ноября 2025?")
     assert intent.operation == Operation.count_distinct_videos_with_positive_delta

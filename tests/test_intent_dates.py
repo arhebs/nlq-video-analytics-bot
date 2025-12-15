@@ -25,3 +25,9 @@ def test_inclusive_to_half_open_conversion() -> None:
     assert end_dt.isoformat() == "2025-11-06T00:00:00+00:00"
     assert start_dt.tzinfo == UTC
     assert end_dt.tzinfo == UTC
+
+
+def test_parse_month_range_ru() -> None:
+    start, end = parse_date_range("в июне 2025 года")
+    assert start == date(2025, 6, 1)
+    assert end == date(2025, 6, 30)

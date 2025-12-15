@@ -8,6 +8,7 @@ All user "dates" are interpreted as UTC calendar days:
 from __future__ import annotations
 
 import re
+from calendar import monthrange
 from datetime import UTC, date, datetime, time, timedelta
 
 import dateparser
@@ -39,6 +40,40 @@ _RU_MONTH_NAMES: tuple[str, ...] = (
 _RU_MONTHS: dict[str, int] = {name: idx + 1 for idx, name in enumerate(_RU_MONTH_NAMES)}
 _RU_MONTH_PATTERN = "|".join(_RU_MONTH_NAMES)
 
+_RU_MONTH_NAMES_PREP: tuple[str, ...] = (
+    "январе",
+    "феврале",
+    "марте",
+    "апреле",
+    "мае",
+    "июне",
+    "июле",
+    "августе",
+    "сентябре",
+    "октябре",
+    "ноябре",
+    "декабре",
+)
+_RU_MONTHS_PREP: dict[str, int] = {name: idx + 1 for idx, name in enumerate(_RU_MONTH_NAMES_PREP)}
+_RU_MONTH_PATTERN_PREP = "|".join(_RU_MONTH_NAMES_PREP)
+
+_RU_MONTH_NAMES_NOM: tuple[str, ...] = (
+    "январь",
+    "февраль",
+    "март",
+    "апрель",
+    "май",
+    "июнь",
+    "июль",
+    "август",
+    "сентябрь",
+    "октябрь",
+    "ноябрь",
+    "декабрь",
+)
+_RU_MONTHS_NOM: dict[str, int] = {name: idx + 1 for idx, name in enumerate(_RU_MONTH_NAMES_NOM)}
+_RU_MONTH_PATTERN_NOM = "|".join(_RU_MONTH_NAMES_NOM)
+
 _YEAR_RE = re.compile(r"\b\d{4}\b")
 
 _RANGE_SAME_MONTH_RE = re.compile(
@@ -49,6 +84,14 @@ _RANGE_SAME_MONTH_RE = re.compile(
 _RANGE_MONTH_TO_MONTH_SAME_YEAR_RE = re.compile(
     rf"\bс\s+(?P<d1>\d{{1,2}})\s+(?P<m1>{_RU_MONTH_PATTERN})\s+по\s+"
     rf"(?P<d2>\d{{1,2}})\s+(?P<m2>{_RU_MONTH_PATTERN})\s+(?P<y>\d{{4}})\b"
+)
+
+_MONTH_ONLY_PREP_RE = re.compile(
+    rf"\bв\s+(?P<m>{_RU_MONTH_PATTERN_PREP})\s+(?P<y>\d{{4}})(?:\s+(?:г|г\.|год|года))?\b"
+)
+
+_MONTH_ONLY_NOM_RE = re.compile(
+    rf"\b(?P<m>{_RU_MONTH_PATTERN_NOM})\s+(?P<y>\d{{4}})(?:\s+(?:г|г\.|год|года))?\b"
 )
 
 
@@ -84,6 +127,13 @@ def _extract_yearful_dates(text: str) -> list[date]:
     return parsed
 
 
+def _parse_month_range(match: re.Match[str], month_map: dict[str, int]) -> tuple[date, date]:
+    year = int(match.group("y"))
+    month = month_map[match.group("m")]
+    last_day = monthrange(year, month)[1]
+    return date(year, month, 1), date(year, month, last_day)
+
+
 def parse_date_range(text: str) -> tuple[date, date] | None:
     """Parse a single day or an inclusive range from text.
 
@@ -109,6 +159,14 @@ def parse_date_range(text: str) -> tuple[date, date] | None:
         start = date(year, _RU_MONTHS[match.group("m1")], int(match.group("d1")))
         end = date(year, _RU_MONTHS[match.group("m2")], int(match.group("d2")))
         return (start, end) if start <= end else (end, start)
+
+    for regex, month_map in (
+            (_MONTH_ONLY_PREP_RE, _RU_MONTHS_PREP),
+            (_MONTH_ONLY_NOM_RE, _RU_MONTHS_NOM),
+    ):
+        match = regex.search(value)
+        if match:
+            return _parse_month_range(match, month_map)
 
     yearful_dates = _extract_yearful_dates(value)
     if len(yearful_dates) >= 2:

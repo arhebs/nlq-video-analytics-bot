@@ -33,6 +33,11 @@ def test_intent_requires_metric_for_delta_ops() -> None:
         )
 
 
+def test_intent_requires_metric_for_sum_total_metric() -> None:
+    with pytest.raises(ValueError):
+        Intent(operation=Operation.sum_total_metric, metric=None)
+
+
 def test_intent_forbids_metric_for_count_videos() -> None:
     with pytest.raises(ValueError):
         Intent(operation=Operation.count_videos, metric=Metric.views)

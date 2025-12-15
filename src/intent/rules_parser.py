@@ -95,9 +95,27 @@ def _has_negative_delta_phrase(text: str) -> bool:
     )
 
 
+def _has_count_videos_phrase(text: str) -> bool:
+    """Whether the wording is explicitly asking for a count of videos."""
+
+    tokens = text.split()
+    for idx, tok in enumerate(tokens):
+        if tok not in {"сколько", "количество", "число"}:
+            continue
+
+        lookahead = tokens[idx + 1: idx + 4]
+        if any(t.startswith("видео") for t in lookahead):
+            return True
+        if any(t.startswith("ролик") for t in lookahead):
+            return True
+
+    return False
+
+
 def _detect_operation(text: str) -> Operation:
     padded = f" {text} "
     tokens = set(text.split())
+    metric = detect_single_metric(text)
 
     # Count snapshot measurements where per-snapshot delta is negative.
     if (
@@ -122,6 +140,19 @@ def _detect_operation(text: str) -> Operation:
     # Count distinct videos with positive delta.
     if "сколько" in tokens and "видео" in tokens and any(t.startswith("нов") for t in tokens):
         return Operation.count_distinct_videos_with_positive_delta
+
+    # Sum of final totals across videos (not deltas).
+    if metric is not None and not _has_count_videos_phrase(text):
+        if (
+                "в сумме" in padded
+                or "суммар" in text
+                or "общее" in tokens
+                or "итого" in tokens
+                or "всего" in tokens
+                or "сколько" in tokens
+                or "количество" in tokens
+        ):
+            return Operation.sum_total_metric
 
     if "сколько" in tokens or "количество" in tokens or "число" in tokens:
         if "видео" in tokens or any(t.startswith("видео") for t in tokens):
@@ -236,10 +267,12 @@ def parse_intent(text: str) -> Intent:
     date_range = None
     if date_tuple is not None:
         start_date, end_date = date_tuple
-        scope = DateRangeScope.videos_published_at
-        if operation != Operation.count_videos:
+        if operation in {Operation.count_videos, Operation.sum_total_metric}:
+            scope = DateRangeScope.videos_published_at
+        else:
             scope = DateRangeScope.snapshots_created_at
-        elif as_of:
+
+        if as_of and operation in {Operation.count_videos, Operation.sum_total_metric}:
             scope = DateRangeScope.snapshots_created_at
         date_range = DateRange(
             scope=scope,

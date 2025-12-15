@@ -17,6 +17,7 @@ class Operation(StrEnum):
     """Supported query operation families."""
 
     count_videos = "count_videos"
+    sum_total_metric = "sum_total_metric"
     sum_delta_metric = "sum_delta_metric"
     count_distinct_videos_with_positive_delta = "count_distinct_videos_with_positive_delta"
     count_snapshots_with_negative_delta = "count_snapshots_with_negative_delta"

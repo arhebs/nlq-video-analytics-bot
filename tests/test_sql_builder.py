@@ -53,6 +53,28 @@ def test_build_count_videos_creator_and_date_range() -> None:
     assert _placeholder_count(sql) == len(params)
 
 
+def test_build_sum_total_metric_over_videos() -> None:
+    intent = Intent(
+        operation=Operation.sum_total_metric,
+        metric=Metric.views,
+        date_range=DateRange(
+            scope=DateRangeScope.videos_published_at,
+            start_date=date(2025, 6, 1),
+            end_date=date(2025, 6, 30),
+            inclusive=True,
+        ),
+        filters=Filters(),
+    )
+    sql, params = build_query(intent)
+
+    assert "SELECT COALESCE(SUM(v.views_count), 0)::bigint" in sql
+    assert "FROM videos v" in sql
+    assert "v.video_created_at >= %s AND v.video_created_at < %s" in sql
+    assert params[0].isoformat() == "2025-06-01T00:00:00+00:00"
+    assert params[1].isoformat() == "2025-07-01T00:00:00+00:00"
+    assert _placeholder_count(sql) == len(params)
+
+
 def test_build_count_videos_final_total_threshold_is_parameterized() -> None:
     intent = Intent(
         operation=Operation.count_videos,
