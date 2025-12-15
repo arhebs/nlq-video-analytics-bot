@@ -6,9 +6,10 @@ tables, operators) are strictly allowlisted; only values become bound parameters
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Iterable
+from typing import Any
 
 from src.intent.dates import inclusive_dates_to_half_open
 from src.intent.schema import (
@@ -122,7 +123,12 @@ def _from_snapshots_with_videos(snapshot_thresholds: list[Threshold]) -> str:
     return from_sql
 
 
-def _append_creator_filter(clauses: list[str], params: list[Any], *, creator_id: str | None) -> None:
+def _append_creator_filter(
+        clauses: list[str],
+        params: list[Any],
+        *,
+        creator_id: str | None,
+) -> None:
     if creator_id is None:
         return
     clauses.append("v.creator_id = %s")
@@ -193,16 +199,18 @@ def _snapshot_query_context(
 def build_query(intent: Intent) -> tuple[str, tuple[Any, ...]]:
     """Build a scalar SQL query + params from a validated Intent."""
 
-    if intent.operation == Operation.count_videos:
-        built = _build_count_videos(intent)
-        return built.sql, built.params
-    if intent.operation == Operation.sum_delta_metric:
-        built = _build_sum_delta_metric(intent)
-        return built.sql, built.params
-    if intent.operation == Operation.count_distinct_videos_with_positive_delta:
-        built = _build_count_distinct_positive_delta(intent)
-        return built.sql, built.params
-    raise SQLBuilderError(f"Unsupported operation: {intent.operation}")
+    builders = {
+        Operation.count_videos: _build_count_videos,
+        Operation.sum_delta_metric: _build_sum_delta_metric,
+        Operation.count_distinct_videos_with_positive_delta: _build_count_distinct_positive_delta,
+    }
+
+    try:
+        built = builders[intent.operation](intent)
+    except KeyError as exc:
+        raise SQLBuilderError(f"Unsupported operation: {intent.operation}") from exc
+
+    return built.sql, built.params
 
 
 def _build_count_videos(intent: Intent) -> BuiltQuery:
@@ -220,9 +228,7 @@ def _build_count_videos(intent: Intent) -> BuiltQuery:
         from_sql += " JOIN snap_max sm ON sm.video_id = v.id"
 
     # Creator filter.
-    if intent.filters.creator_id is not None:
-        clauses.append("v.creator_id = %s")
-        params.append(intent.filters.creator_id)
+    _append_creator_filter(clauses, params, creator_id=intent.filters.creator_id)
 
     # Date range filter, depending on scope.
     if intent.date_range is not None:
@@ -230,11 +236,16 @@ def _build_count_videos(intent: Intent) -> BuiltQuery:
             clause, p = _build_date_clause("v.video_created_at", intent.date_range)
             clauses.append(clause)
             params.extend(p)
-        elif intent.date_range.scope == DateRangeScope.snapshots_created_at and not snapshot_thresholds:
+        elif (
+                intent.date_range.scope == DateRangeScope.snapshots_created_at
+                and not snapshot_thresholds
+        ):
             # Apply the date filter via snapshots existence, but still count videos.
             clause, p = _build_date_clause("s.created_at", intent.date_range)
             clauses.append(
-                "EXISTS (SELECT 1 FROM video_snapshots s WHERE s.video_id = v.id AND " + clause + ")"
+                "EXISTS (SELECT 1 FROM video_snapshots s WHERE s.video_id = v.id AND "
+                + clause
+                + ")"
             )
             params.extend(p)
 
@@ -283,5 +294,8 @@ def _build_count_distinct_positive_delta(intent: Intent) -> BuiltQuery:
         initial_clauses=[f"s.{delta_col} > 0"],
     )
 
-    sql = f"{cte_sql}SELECT COUNT(DISTINCT s.video_id)::bigint {from_sql} {_where_and(clauses)}".strip()
+    sql = (
+        f"{cte_sql}SELECT COUNT(DISTINCT s.video_id)::bigint {from_sql} "
+        f"{_where_and(clauses)}"
+    ).strip()
     return BuiltQuery(sql=sql, params=tuple(params))
