@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Literal
 
 from src.intent.llm_parser import LLMParserError, llm_config_from_env, parse_intent_json_via_llm
 from src.intent.rules_parser import RulesParserError, parse_intent as parse_rules_intent
@@ -13,7 +14,18 @@ class IntentParserError(ValueError):
     """Raised when no parser can produce a valid intent."""
 
 
-def parse_intent(text: str, *, llm_enabled: bool, llm_api_key: str | None = None) -> Intent:
+ParseSource = Literal["llm", "rules"]
+
+
+@dataclass(frozen=True)
+class ParseResult:
+    """Validated intent plus information about which parser produced it."""
+
+    intent: Intent
+    source: ParseSource
+
+
+def parse_intent_with_source(text: str, *, llm_enabled: bool, llm_api_key: str | None = None) -> ParseResult:
     """Parse text into an Intent object.
 
     Strategy:
@@ -27,13 +39,19 @@ def parse_intent(text: str, *, llm_enabled: bool, llm_api_key: str | None = None
             cfg = llm_config_from_env(api_key=llm_api_key)
             obj: dict[str, Any] = parse_intent_json_via_llm(text, config=cfg)
             intent = intent_from_obj(obj)
-            return intent
+            return ParseResult(intent=intent, source="llm")
         except (LLMParserError, ValueError):
             # Invalid LLM output must never crash the pipeline; fall back to rules.
             pass
 
     try:
-        return parse_rules_intent(text)
+        intent = parse_rules_intent(text)
+        return ParseResult(intent=intent, source="rules")
     except RulesParserError as exc:
         raise IntentParserError(str(exc)) from exc
 
+
+def parse_intent(text: str, *, llm_enabled: bool, llm_api_key: str | None = None) -> Intent:
+    """Parse text into a validated Intent object (convenience wrapper)."""
+
+    return parse_intent_with_source(text, llm_enabled=llm_enabled, llm_api_key=llm_api_key).intent

@@ -90,7 +90,13 @@ def _detect_operation(text: str) -> Operation:
     if "сколько" in tokens and "видео" in tokens and any(t.startswith("нов") for t in tokens):
         return Operation.count_distinct_videos_with_positive_delta
 
-    return Operation.count_videos
+    if "сколько" in tokens or "количество" in tokens or "число" in tokens:
+        if "видео" in tokens or any(t.startswith("видео") for t in tokens):
+            return Operation.count_videos
+        if any(t in {"ролик", "ролика", "ролики", "роликов"} for t in tokens):
+            return Operation.count_videos
+
+    raise RulesParserError("unsupported query")
 
 
 def _extract_creator_id(text: str) -> str | None:
