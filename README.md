@@ -39,16 +39,28 @@ Optional readiness wait:
 bash scripts/wait_for_db.sh
 ```
 
-## Migrations (placeholder)
+## Migrations
 
 ```bash
 python -m src.db.migrate
 ```
 
-## Load dataset (placeholder)
+To drop and recreate tables (destructive):
 
 ```bash
-python -m src.db.load_json --path <file.json> --truncate
+python -m src.db.migrate --recreate
+```
+
+## Load dataset
+
+```bash
+python -m src.db.load_json --path videos.json --truncate
+```
+
+You can also load from a URL:
+
+```bash
+python -m src.db.load_json --url <dataset_url> --truncate
 ```
 
 ## Run bot (placeholder)
